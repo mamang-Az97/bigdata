@@ -14,7 +14,7 @@ st.set_page_config(
 # Load Data Bersih
 @st.cache_data
 def load_data():
-    df = pd.read_csv('data_kopi_tokopedia_clean.csv')
+    df = pd.read_csv('dataset_kopi_tokopedia_clean.csv')
     return df
 
 try:
