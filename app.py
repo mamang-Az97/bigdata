@@ -100,7 +100,7 @@ with col2:
 # ---------------------------------------------------------
 # TAB ANALISIS & VISUALISASI
 # ---------------------------------------------------------
-tab1, tab2, tab3 = st.tabs(["📈 Analisis & Korelasi", "🏆 Top Produk & Toko", "🤖 Simulasi Regresi Linier"])
+tab1, tab2, tab3 = st.tabs(["📈 Analisis & Korelasi", "🏆 Top Produk & Toko", "🤖 Simulasi Regresi Linier & Omset"])
 
 with tab1:
     col_left, col_right = st.columns(2)
@@ -255,3 +255,43 @@ with tab3:
     pred_terjual_clean = max(0, int(np.round(pred_terjual)))
     
     st.success(f"📌 Estimasikan Penjualan: **± {pred_terjual_clean} unit**")
+
+# Visualisasi Pangsa Pasar Omzet
+st.subheader("Omset Kopi")
+fig_donut_omzet = px.pie(
+    df_filtered, 
+    names='Varian Kopi', 
+    values='Omzet', 
+    hole=0.4,
+    title="Market Share Omzet (Rupiah) per Varian Kopi",
+    color_discrete_sequence=px.colors.qualitative.Pastel
+)
+fig_donut_omzet.update_traces(textinfo='percent+label')
+st.plotly_chart(fig_donut_omzet, use_container_width=True)
+
+st.subheader("🏆 Top 10 Toko Berdasarkan Omzet Terbesar")
+top_toko_omzet = df_filtered.groupby('Asal/Lokasi Toko')['Omzet'].sum().reset_index().nlargest(10, 'Omzet')
+
+fig_toko_omzet = px.bar(
+    top_toko_omzet,
+    x='Omzet',
+    y='Asal/Lokasi Toko',
+    orientation='h',
+    title="Total Omzet (Rp) per Toko/Lokasi",
+    color='Omzet',
+    color_continuous_scale='Greens'
+)
+fig_toko_omzet.update_layout(yaxis={'categoryorder':'total ascending'})
+st.plotly_chart(fig_toko_omzet, use_container_width=True)
+
+st.dataframe(
+    df_filtered,
+    use_container_width=True,
+    hide_index=True,
+    column_config={
+        "Harga": st.column_config.NumberColumn("Harga", format="Rp %'d"),
+        "Terjual": st.column_config.NumberColumn("Terjual", format="%d unit"),
+        "Omzet": st.column_config.NumberColumn("Estimasi Omzet", format="Rp %'d"), # <-- Tambahan Omzet
+        "Rating": st.column_config.NumberColumn("Rating", format="⭐ %.1f")
+    }
+)
