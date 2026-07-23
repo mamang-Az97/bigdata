@@ -49,7 +49,7 @@ selected_harga = st.sidebar.slider(
     min_value=min_harga,
     max_value=max_harga,
     value=(min_harga, min(max_harga, 500000)),
-    step=4740
+    step=100
 )
 
 # Filter Rating
