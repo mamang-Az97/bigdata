@@ -247,9 +247,9 @@ with tab3:
     col_input1, col_input2 = st.columns(2)
     
     with col_input1:
-        input_harga = st.number_input("Input Harga Produk (Rp)", min_value=1000, max_value=2000000, value=50000, step=5000)
+        input_harga = st.number_input("Input Harga Produk (Rp)", min_value=400, max_value=2000000, value=50000, step=5000)
     with col_input2:
-        input_rating = st.slider("Input Rating Produk", min_value=1.0, max_value=5.0, value=4.8, step=0.1)
+        input_rating = st.slider("Input Rating Produk", float(df['Rating'].min()), float(df['Rating'].max()))
         
     pred_terjual = model.predict([[input_harga, input_rating]])[0]
     pred_terjual_clean = max(0, int(np.round(pred_terjual)))
