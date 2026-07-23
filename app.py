@@ -163,64 +163,64 @@ with tab2:
         )
         fig_toko.update_layout(yaxis={'categoryorder':'total ascending'})
         st.plotly_chart(fig_toko, use_container_width=True)
-        # ---------------------------------------------------------
-        # FUNGSI HELPER (Ditaruh di bagian atas app.py)
-        # ---------------------------------------------------------
-        @st.cache_data
-        def convert_df_to_csv(df):
-            """Mengubah DataFrame ke CSV dengan Caching agar hemat memori/proses."""
-            return df.to_csv(index=False).encode('utf-8')
+    # ---------------------------------------------------------
+    # FUNGSI HELPER (Ditaruh di bagian atas app.py)
+    # ---------------------------------------------------------
+    @st.cache_data
+    def convert_df_to_csv(df):
+        """Mengubah DataFrame ke CSV dengan Caching agar hemat memori/proses."""
+        return df.to_csv(index=False).encode('utf-8')
+    
+    
+    # ---------------------------------------------------------
+    # TABEL DATA & DOWNLOAD (Gantikan snippet lama dengan ini)
+    # ---------------------------------------------------------
+    st.markdown("---")
+    
+    # Layout sejajar untuk Judul + Informasi Jumlah Data dan Tombol Download
+    col_header, col_download = st.columns([3, 1], vertical_alignment="bottom")
+    
+    with col_header:
+        st.subheader("📋 Seluruh Data Terfilter")
+        st.caption(f"Menampilkan **{len(df_filtered):,}** baris data berdasarkan filter aktif.")
+    
+    with col_download:
+        # Mengonversi CSV menggunakan fungsi ber-cache
+        csv_data = convert_df_to_csv(df_filtered)
         
-        
-        # ---------------------------------------------------------
-        # TABEL DATA & DOWNLOAD (Gantikan snippet lama dengan ini)
-        # ---------------------------------------------------------
-        st.markdown("---")
-        
-        # Layout sejajar untuk Judul + Informasi Jumlah Data dan Tombol Download
-        col_header, col_download = st.columns([3, 1], vertical_alignment="bottom")
-        
-        with col_header:
-            st.subheader("📋 Seluruh Data Terfilter")
-            st.caption(f"Menampilkan **{len(df_filtered):,}** baris data berdasarkan filter aktif.")
-        
-        with col_download:
-            # Mengonversi CSV menggunakan fungsi ber-cache
-            csv_data = convert_df_to_csv(df_filtered)
-            
-            st.download_button(
-                label="📥 Download CSV",
-                data=csv_data,
-                file_name="data_kopi_tokopedia_filtered.csv",
-                mime="text/csv",
-                use_container_width=True,
-                type="primary"
-            )
-        
-        # Tampilan Tabel Interaktif dengan Format Kolom
-        st.dataframe(
-            df_filtered,
+        st.download_button(
+            label="📥 Download CSV",
+            data=csv_data,
+            file_name="data_kopi_tokopedia_filtered.csv",
+            mime="text/csv",
             use_container_width=True,
-            hide_index=True,
-            column_config={
-                "Harga": st.column_config.NumberColumn(
-                    "Harga",
-                    format="Rp %'d",
-                ),
-                "Rating": st.column_config.NumberColumn(
-                    "Rating",
-                    format="⭐ %.1f",
-                ),
-                "Terjual": st.column_config.NumberColumn(
-                    "Terjual",
-                    format="%d unit",
-                ),
-                "Link Produk": st.column_config.LinkColumn(
-                    "Link Tokopedia",
-                    display_text="Lihat Produk"
-                )
-            }
+            type="primary"
         )
+    
+    # Tampilan Tabel Interaktif dengan Format Kolom
+    st.dataframe(
+        df_filtered,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Harga": st.column_config.NumberColumn(
+                "Harga",
+                format="Rp %'d",
+            ),
+            "Rating": st.column_config.NumberColumn(
+                "Rating",
+                format="⭐ %.1f",
+            ),
+            "Terjual": st.column_config.NumberColumn(
+                "Terjual",
+                format="%d unit",
+            ),
+            "Link Produk": st.column_config.LinkColumn(
+                "Link Tokopedia",
+                display_text="Lihat Produk"
+            )
+        }
+    )
 
 with tab3:
     st.subheader("Model Regresi Linier Berganda")
