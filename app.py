@@ -243,91 +243,18 @@ with tab3:
     st.info("Persamaan Regresi Linier Berganda Terbentuk:")
     st.latex(rf"Y = {a:.2f} + ({b1:.6f}) \times \text{{Harga}} + ({b2:.2f}) \times \text{{Rating}}")
     
-    st.markdown("#### 🔮 Simulasi Prediksi Penjualan & Omzet")
-    st.caption("Masukkan estimasi harga dan rating untuk memproyeksikan potensi unit terjual dan omzet produk baru Anda.")
-    
-    # ---------------------------------------------------------
-    # 1. INPUT PARAMETER SIMULASI (SINKRON DENGAN RENTANG DATASET)
-    # ---------------------------------------------------------
+    st.markdown("#### 🔮 Simulasi Prediksi Penjualan")
     col_input1, col_input2 = st.columns(2)
-    
     with col_input1:
-        # Menggunakan min_harga & max_harga dari dataset dengan step 100
-        input_harga = st.number_input(
-            "Harga Produk (Rp)", 
-            min_value=min_harga, 
-            max_value=max_harga, 
-            value=min(max(50000, min_harga), max_harga),  # Safe default value
-            step=100,                                     # Diselaraskan dengan step=100
-            help=f"Masukkan harga produk antara Rp {min_harga:,} - Rp {max_harga:,}"
-        )
-    
+        input_harga = st.number_input("Input Harga Produk (Rp)", min_value=400, max_value=2000000, value=50000, step=5000)
     with col_input2:
-        # Rata-rata rating dataset sebagai nilai default yang aman
-        avg_rating = float(np.round(df['Rating'].mean(), 1))
-        default_rating = max(min_rating, min(avg_rating, max_rating))
-        
-        # Menggunakan min_rating & max_rating dari dataset
-        input_rating = st.slider(
-            "Target Rating Produk", 
-            min_value=min_rating, 
-            max_value=max_rating,
-            value=default_rating,
-            step=0.1,
-            help=f"Rentang rating antara {min_rating:.1f} - {max_rating:.1f}"
-        )
-    
-    # ---------------------------------------------------------
-    # 2. KALKULASI PREDIKSI (MENGGUNAKAN DATAFRAME AGAR BEBAS WARNING)
-    # ---------------------------------------------------------
-    input_data = pd.DataFrame([[input_harga, input_rating]], columns=['Harga', 'Rating'])
-    pred_terjual_raw = model.predict(input_data)[0]
-    
-    # Mencegah angka negatif
-    pred_terjual_clean = max(0, int(np.round(pred_terjual_raw)))
-    pred_omzet = pred_terjual_clean * input_harga
-    
-    # ---------------------------------------------------------
-    # 3. HASIL PROYEKSI (METRIC CARDS)
-    # ---------------------------------------------------------
-    st.markdown("##### 📊 Hasil Proyeksi")
-    col_res1, col_res2, col_res3 = st.columns(3)
-    
-    with col_res1:
-        st.metric(
-            label="Estimasi Unit Terjual", 
-            value=f"{pred_terjual_clean:,} unit"
-        )
-    
-    with col_res2:
-        st.metric(
-            label="Estimasi Total Omzet", 
-            value=f"Rp {pred_omzet:,.0f}"
-        )
-    
-    with col_res3:
-        st.metric(
-            label="Harga Input Produk", 
-            value=f"Rp {input_harga:,.0f}"
-        )
-    
-    # ---------------------------------------------------------
-    # 4. INSIGHT OTOMATIS BERDASARKAN MODEL
-    # ---------------------------------------------------------
-    if pred_terjual_clean == 0:
-        st.warning("⚠️ **Peringatan:** Kombinasi harga ini terlalu tinggi atau rating terlalu rendah menurut pola data historis.")
-    else:
-        b1_harga = model.coef_[0]
-        b2_rating = model.coef_[1]
-        
-        dampak_harga = abs(int(np.round(b1_harga * 10000)))
-        dampak_rating = int(np.round(b2_rating * 0.1))
-        
-        st.info(
-            f"💡 **Insight Bisnis:**\n"
-            f"* Setiap kenaikan **Rating +0.1** diproyeksikan mengubah penjualan sebesar **± {dampak_rating:,} unit**.\n"
-            f"* Setiap perubahan **Harga ± Rp 10.000** memengaruhi potensi penjualan sebesar **± {dampak_harga:,} unit**."
-        )
+        input_rating = st.slider("Input Rating Produk", float(df['Rating'].min()), float(df['Rating'].max()))
+
+    pred_terjual = model.predict([[input_harga, input_rating]])[0]
+    pred_terjual_clean = max(0, int(np.round(pred_terjual)))
+
+    st.success(f"📌 Estimasikan Penjualan: **± {pred_terjual_clean} unit**") 
+
     # Visualisasi Pangsa Pasar Omzet
     st.subheader("Omset Kopi")
     st.latex(rf"\text{{Omzet}} = \text{{Harga}} \times \text{{Terjual}}")
