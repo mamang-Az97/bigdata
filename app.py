@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import plotly.graph_objects as go
 from sklearn.linear_model import LinearRegression
 
 # ---------------------------------------------------------
@@ -255,6 +256,80 @@ with tab3:
 
     st.success(f"📌 Estimasikan Penjualan: **± {pred_terjual_clean} unit**") 
 
+
+    # ---------------------------------------------------------
+    # VISUALISASI GARIS TREN PREDIKSI VS DATA AKTUAL
+    # ---------------------------------------------------------
+    st.markdown("---")
+    st.subheader("📈 Evaluasi Garis Tren Prediksi Model vs Data Aktual")
+    
+    if len(df_filtered) > 2:
+        # 1. Membuat titik data untuk Garis Tren Prediksi (Merah)
+        min_x = df_filtered['Harga'].min()
+        max_x = df_filtered['Harga'].max()
+        avg_rating = df_filtered['Rating'].mean()
+    
+        # Buat 100 titik harga dari minimum ke maksimum secara merata
+        x_line = np.linspace(min_x, max_x, 100)
+        
+        # Buat DataFrame dummy dengan Rating konstan pada rata-ratanya
+        df_line = pd.DataFrame({
+            'Harga': x_line,
+            'Rating': avg_rating
+        })
+        
+        # Prediksi nilai Y (Terjual) untuk membentuk garis mulus
+        y_line = model.predict(df_line)
+        y_line_clean = np.maximum(0, y_line)  # Mencegah visualisasi nilai negatif
+    
+        # 2. Membuat Figure Plotly
+        fig_trend = go.Figure()
+    
+        # Trace 1: Titik Biru Data Aktual
+        fig_trend.add_trace(go.Scatter(
+            x=df_filtered['Harga'],
+            y=df_filtered['Terjual'],
+            mode='markers',
+            name='Data Aktual (Tokopedia)',
+            marker=dict(
+                color='#3366CC',
+                opacity=0.6,
+                size=7
+            ),
+            hovertemplate="<b>Harga:</b> Rp %{x:,.0f}<br><b>Terjual:</b> %{y:,} unit<extra></extra>"
+        ))
+    
+        # Trace 2: Garis Merah Tren Prediksi
+        fig_trend.add_trace(go.Scatter(
+            x=x_line,
+            y=y_line_clean,
+            mode='lines',
+            name='Garis Tren Prediksi Model',
+            line=dict(
+                color='red',
+                width=3
+            ),
+            hovertemplate="<b>Harga Prediksi:</b> Rp %{x:,.0f}<br><b>Estimasi Terjual:</b> %{y:,.1f} unit<extra></extra>"
+        ))
+    
+        # 3. Kustomisasi Layout Grafik
+        fig_trend.update_layout(
+            xaxis_title="Harga Produk (Rupiah)",
+            yaxis_title="Jumlah Produk Terjual (Unit)",
+            legend=dict(
+                x=0.70,
+                y=0.95,
+                bgcolor="rgba(255, 255, 255, 0.8)",
+                bordercolor="LightGray",
+                borderwidth=1
+            ),
+            template="plotly_white",
+            margin=dict(l=40, r=40, t=30, b=40)
+        )
+    
+        st.plotly_chart(fig_trend, use_container_width=True)
+    else:
+        st.warning("Data terfilter terlalu sedikit untuk menampilkan grafik tren regresi.")
     # Visualisasi Pangsa Pasar Omzet
     st.subheader("Omset Kopi")
     st.latex(rf"\text{{Omzet}} = \text{{Harga}} \times \text{{Terjual}}")
