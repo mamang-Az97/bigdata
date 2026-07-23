@@ -4,14 +4,18 @@ import numpy as np
 import plotly.express as px
 from sklearn.linear_model import LinearRegression
 
-# Config Halaman
+# ---------------------------------------------------------
+# KONFIGURASI HALAMAN
+# ---------------------------------------------------------
 st.set_page_config(
-    page_title="Dashboard Analisis Penjualan Kopi Tokopedia",
+    page_title="Dashboard Analisis Kopi Tokopedia",
     page_icon="☕",
     layout="wide"
 )
 
-# Load Data Bersih
+# ---------------------------------------------------------
+# LOAD DATASET
+# ---------------------------------------------------------
 @st.cache_data
 def load_data():
     df = pd.read_csv('data_kopi_tokopedia_clean.csv')
@@ -19,161 +23,173 @@ def load_data():
 
 try:
     df = load_data()
-except Exception as e:
-    st.error("Gagal memuat file 'data_kopi_tokopedia_clean.csv'. Pastikan file berada dalam folder yang sama.")
+except FileNotFoundError:
+    st.error("File 'data_kopi_tokopedia_clean.csv' tidak ditemukan. Pastikan file csv berada dalam folder yang sama!")
     st.stop()
 
-# Judul Utama
-st.title("☕ Dashboard Analisis Penjualan Kopi Tokopedia")
-st.markdown("Dashboard interaktif untuk menganalisis hubungan antara **Harga**, **Rating**, dan **Jumlah Terjual**.")
+# ---------------------------------------------------------
+# HEADER DASHBOARD
+# ---------------------------------------------------------
+st.title("☕ Dashboard Analisis Pasar Kopi Tokopedia")
+st.markdown("Dashboard interaktif untuk menganalisis hubungan antara **Harga**, **Rating**, **Varian Kopi**, dan tingkat **Penjualan (Terjual)**.")
 
-# Sidebar Filter
+# ---------------------------------------------------------
+# SIDEBAR - FILTER DATA
+# ---------------------------------------------------------
 st.sidebar.header("🔍 Filter Data")
 
 # Filter Varian Kopi
-varians = df['Varian Kopi'].dropna().unique().tolist()
-selected_varians = st.sidebar.multiselect("Pilih Varian Kopi:", options=varians, default=varians)
+varians = ['Semua Varian'] + sorted(list(df['Varian Kopi'].dropna().unique()))
+selected_varian = st.sidebar.selectbox("Pilih Varian Kopi", varians)
 
-# Filter Harga
+# Filter Rentang Harga
 min_harga, max_harga = int(df['Harga'].min()), int(df['Harga'].max())
-selected_harga = st.sidebar.slider("Rentang Harga (Rp):", min_value=min_harga, max_value=max_harga, value=(min_harga, max_harga))
+selected_harga = st.sidebar.slider(
+    "Rentang Harga (Rp)",
+    min_value=min_harga,
+    max_value=max_harga,
+    value=(min_harga, min(max_harga, 500000)),
+    step=5000
+)
 
 # Filter Rating
 min_rating, max_rating = float(df['Rating'].min()), float(df['Rating'].max())
-selected_rating = st.sidebar.slider("Rentang Rating:", min_value=min_rating, max_value=max_rating, value=(min_rating, max_rating), step=0.1)
+selected_rating = st.sidebar.slider(
+    "Rentang Rating",
+    min_value=min_rating,
+    max_value=max_rating,
+    value=(min_rating, max_rating),
+    step=0.1
+)
 
-# Terapkan Filter
+# Penerapan Filter
 df_filtered = df[
-    (df['Varian Kopi'].isin(selected_varians)) &
-    (df['Harga'].between(selected_harga[0], selected_harga[1])) &
-    (df['Rating'].between(selected_rating[0], selected_rating[1]))
+    (df['Harga'] >= selected_harga[0]) & 
+    (df['Harga'] <= selected_harga[1]) &
+    (df['Rating'] >= selected_rating[0]) & 
+    (df['Rating'] <= selected_rating[1])
 ]
 
-# Ringkasan KPI Metrics
-m1, m2, m3, m4 = st.columns(4)
-m1.metric("Total Produk", f"{len(df_filtered):,} item")
-m2.metric("Rata-rata Harga", f"Rp {df_filtered['Harga'].mean():,.0f}" if not df_filtered.empty else "Rp 0")
-m3.metric("Rata-rata Rating", f"{df_filtered['Rating'].mean():.2f} ⭐" if not df_filtered.empty else "0")
-m4.metric("Total Terjual", f"{df_filtered['Terjual'].sum():,} unit" if not df_filtered.empty else "0")
+if selected_varian != 'Semua Varian':
+    df_filtered = df_filtered[df_filtered['Varian Kopi'] == selected_varian]
+
+# ---------------------------------------------------------
+# METRICS METRIK UTAMA (KPI)
+# ---------------------------------------------------------
+st.markdown("### 📊 Ringkasan Eksekutif")
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.metric("Total Produk", f"{len(df_filtered):,} item")
+with col2:
+    mean_harga = df_filtered['Harga'].mean() if not df_filtered.empty else 0
+    st.metric("Rata-Rata Harga", f"Rp {mean_harga:,.0f}")
+with col3:
+    total_terjual = df_filtered['Terjual'].sum() if not df_filtered.empty else 0
+    st.metric("Total Terjual", f"{total_terjual:,} unit")
+with col4:
+    mean_rating = df_filtered['Rating'].mean() if not df_filtered.empty else 0
+    st.metric("Rata-Rata Rating", f"⭐ {mean_rating:.2f}")
 
 st.markdown("---")
 
-# Halaman Utama Menggunakan Tab
-tab1, tab2, tab3 = st.tabs(["📊 Analisis Regresi & Korelasi", "📈 Market Insight", "📋 Data Table"])
+# ---------------------------------------------------------
+# TAB ANALISIS & VISUALISASI
+# ---------------------------------------------------------
+tab1, tab2, tab3 = st.tabs(["📈 Analisis & Korelasi", "🏆 Top Produk & Toko", "🤖 Simulasi Regresi Linier"])
 
-# TAB 1: REGRESI & KORELASI
 with tab1:
-    st.subheader("1. Model Regresi Linier Berganda")
+    col_left, col_right = st.columns(2)
     
-    if len(df_filtered) > 5:
-        X = df_filtered[['Harga', 'Rating']]
-        Y = df_filtered['Terjual']
-        
-        # Fit Model Regresi
-        model = LinearRegression()
-        model.fit(X, Y)
-        
-        col_reg1, col_reg2 = st.columns([1, 1])
-        
-        with col_reg1:
-            st.markdown("### 📐 Persamaan Regresi")
-            const = model.intercept_
-            coef_harga = model.coef_[0]
-            coef_rating = model.coef_[1]
-            
-            st.latex(rf"Y = {const:.2f} + ({coef_harga:.6f}) \cdot \text{{Harga}} + ({coef_rating:.2f}) \cdot \text{{Rating}}")
-            
-            st.info(f"""
-            **Keterangan Koefisien:**
-            * **Konstanta ($a$):** {const:.2f}
-            * **Koefisien Harga ($b_1$):** {coef_harga:.6f}
-            * **Koefisien Rating ($b_2$):** {coef_rating:.2f}
-            """)
-            
-        with col_reg2:
-            st.markdown("### 🧮 Simulator Prediksi Penjualan")
-            input_harga = st.number_input("Masukkan Harga Produk (Rp):", min_value=1000, value=50000, step=5000)
-            input_rating = st.slider("Masukkan Rating Produk:", min_value=1.0, max_value=5.0, value=4.8, step=0.1)
-            
-            pred_terjual = model.predict([[input_harga, input_rating]])[0]
-            pred_clean = max(0, int(round(pred_terjual)))
-            
-            st.success(f"**Estimasi Penjualan:** ± {pred_clean} unit")
-        
-        st.markdown("---")
-        st.subheader("2. Matriks Korelasi & Visualisasi Scatter")
-        
-        col_graph1, col_graph2 = st.columns(2)
-        
-        with col_graph1:
-            corr = df_filtered[['Harga', 'Rating', 'Terjual']].corr()
-            fig_corr = px.imshow(
-                corr, 
-                text_auto=".2f", 
-                color_continuous_scale="coolwarm",
-                title="Matriks Korelasi (Harga vs Rating vs Terjual)"
-            )
-            st.plotly_chart(fig_corr, use_container_width=True)
-            
-        with col_graph2:
-            fig_scatter = px.scatter(
-                df_filtered, 
-                x="Harga", 
-                y="Terjual", 
-                color="Rating",
-                hover_data=["Nama Produk", "Varian Kopi"],
-                title="Hubungan Harga vs Terjual (Scatter Plot)",
-                trendline="ols"
-            )
-            st.plotly_chart(fig_scatter, use_container_width=True)
-            
-    else:
-        st.warning("Data terlalu sedikit untuk kalkulasi regresi. Perluas rentang filter di sidebar.")
-
-# TAB 2: MARKET INSIGHT
-with tab2:
-    st.subheader("📊 Analisis Distribusi Pasar")
-    
-    col_m1, col_m2 = st.columns(2)
-    
-    with col_m1:
-        # Total Terjual Berdasarkan Varian Kopi
-        varian_sales = df_filtered.groupby("Varian Kopi")["Terjual"].sum().reset_index().sort_values(by="Terjual", ascending=False)
+    with col_left:
+        st.subheader("Distribusi Varian Kopi")
+        df_varian = df_filtered['Varian Kopi'].value_counts().reset_index()
+        df_varian.columns = ['Varian Kopi', 'Jumlah Produk']
         fig_varian = px.bar(
-            varian_sales, 
-            x="Terjual", 
-            y="Varian Kopi", 
-            orientation="h",
-            title="Total Penjualan per Varian Kopi",
-            color="Terjual",
-            color_continuous_scale="Viridis"
+            df_varian.head(10), 
+            x='Jumlah Produk', 
+            y='Varian Kopi', 
+            orientation='h',
+            title="Top 10 Jumlah Produk per Varian",
+            color='Jumlah Produk',
+            color_continuous_scale='Blues'
         )
+        fig_varian.update_layout(yaxis={'categoryorder':'total ascending'})
         st.plotly_chart(fig_varian, use_container_width=True)
-        
-    with col_m2:
-        # Top 10 Toko / Lokasi
-        toko_top = df_filtered["Asal/Lokasi Toko"].value_counts().head(10).reset_index()
-        toko_top.columns = ["Toko/Lokasi", "Jumlah Produk"]
-        fig_toko = px.bar(
-            toko_top,
-            x="Jumlah Produk",
-            y="Toko/Lokasi",
-            orientation="h",
-            title="Top 10 Toko/Lokasi Produk Terbanyak",
-            color="Jumlah Produk",
-            color_continuous_scale="Blues"
+
+    with col_right:
+        st.subheader("Hubungan Harga vs Terjual")
+        fig_scatter = px.scatter(
+            df_filtered, 
+            x='Harga', 
+            y='Terjual', 
+            color='Varian Kopi',
+            hover_data=['Nama Produk', 'Rating'],
+            title="Scatter Plot: Harga vs Terjual"
         )
+        st.plotly_chart(fig_scatter, use_container_width=True)
+
+    st.subheader("Matriks Korelasi (Harga, Rating, Terjual)")
+    if len(df_filtered) > 1:
+        corr = df_filtered[['Harga', 'Rating', 'Terjual']].corr()
+        fig_corr = px.imshow(
+            corr,
+            text_auto='.2f',
+            aspect="auto",
+            color_continuous_scale='RdBu_r',
+            title="Korelasi Antar Variabel Numerik"
+        )
+        st.plotly_chart(fig_corr, use_container_width=True)
+
+with tab2:
+    col_t1, col_t2 = st.columns(2)
+    
+    with col_t1:
+        st.subheader("10 Produk Terlaris")
+        top_produk = df_filtered.nlargest(10, 'Terjual')[['Nama Produk', 'Varian Kopi', 'Harga', 'Terjual']]
+        st.dataframe(top_produk, hide_index=True, use_container_width=True)
+
+    with col_t2:
+        st.subheader("10 Toko / Lokasi Penjualan Tertinggi")
+        top_toko = df_filtered.groupby('Asal/Lokasi Toko')['Terjual'].sum().reset_index().nlargest(10, 'Terjual')
+        fig_toko = px.bar(
+            top_toko,
+            x='Terjual',
+            y='Asal/Lokasi Toko',
+            orientation='h',
+            title="Total Terjual per Toko",
+            color='Terjual',
+            color_continuous_scale='Greens'
+        )
+        fig_toko.update_layout(yaxis={'categoryorder':'total ascending'})
         st.plotly_chart(fig_toko, use_container_width=True)
 
-# TAB 3: DATA TABLE
 with tab3:
-    st.subheader("📋 Data Hasil Cleaning")
-    st.dataframe(df_filtered, use_container_width=True)
+    st.subheader("Model Regresi Linier Berganda")
+    st.markdown("Model ini menghitung estimasi **Jumlah Terjual (Y)** berdasarkan **Harga ($X_1$)** dan **Rating ($X_2$)**.")
     
-    csv_data = df_filtered.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="📥 Download Data Terfilter (CSV)",
-        data=csv_data,
-        file_name="data_kopi_tokopedia_filtered.csv",
-        mime="text/csv"
-    )
+    # Training Model Regresi
+    X = df[['Harga', 'Rating']]
+    Y = df['Terjual']
+    model = LinearRegression()
+    model.fit(X, Y)
+    
+    a = model.intercept_
+    b1 = model.coef_[0]
+    b2 = model.coef_[1]
+    
+    st.info("Persamaan Regresi Linier Berganda Terbentuk:")
+    st.latex(rf"Y = {a:.2f} + ({b1:.6f}) \times \text{{Harga}} + ({b2:.2f}) \times \text{{Rating}}")
+    
+    st.markdown("#### 🔮 Simulasi Prediksi Penjualan")
+    col_input1, col_input2 = st.columns(2)
+    
+    with col_input1:
+        input_harga = st.number_input("Input Harga Produk (Rp)", min_value=1000, max_value=2000000, value=50000, step=5000)
+    with col_input2:
+        input_rating = st.slider("Input Rating Produk", min_value=1.0, max_value=5.0, value=4.8, step=0.1)
+        
+    pred_terjual = model.predict([[input_harga, input_rating]])[0]
+    pred_terjual_clean = max(0, int(np.round(pred_terjual)))
+    
+    st.success(f"📌 Estimasikan Penjualan: **± {pred_terjual_clean} unit**")
