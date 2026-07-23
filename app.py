@@ -19,6 +19,7 @@ st.set_page_config(
 @st.cache_data
 def load_data():
     df = pd.read_csv('data_kopi_tokopedia_clean.csv')
+    df['Omzet'] = df['Harga'] * df['Terjual']
     return df
 
 try:
@@ -77,22 +78,25 @@ if selected_varian != 'Semua Varian':
 # METRICS METRIK UTAMA (KPI)
 # ---------------------------------------------------------
 st.markdown("### 📊 Ringkasan Eksekutif")
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3 = st.columns(3)
 
 with col1:
     st.metric("Total Produk", f"{len(df_filtered):,} item")
 with col2:
-    mean_harga = df_filtered['Harga'].mean() if not df_filtered.empty else 0
-    st.metric("Rata-Rata Harga", f"Rp {mean_harga:,.0f}")
-with col3:
     total_terjual = df_filtered['Terjual'].sum() if not df_filtered.empty else 0
     st.metric("Total Terjual", f"{total_terjual:,} unit")
-with col4:
+with col3:
     mean_rating = df_filtered['Rating'].mean() if not df_filtered.empty else 0
     st.metric("Rata-Rata Rating", f"⭐ {mean_rating:.2f}")
-
 st.markdown("---")
 
+col1, col2 = st.columns(2)
+with col1:
+    mean_harga = df_filtered['Harga'].mean() if not df_filtered.empty else 0
+    st.metric("Rata-Rata Harga", f"Rp {mean_harga:,.0f}")
+with col2:
+    total_omzet = df_filtered['Omzet'].sum() if not df_filtered.empty else 0
+    st.metric("Total Estimasi Omzet", f"Rp {total_omzet:,.0f}")
 # ---------------------------------------------------------
 # TAB ANALISIS & VISUALISASI
 # ---------------------------------------------------------
