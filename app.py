@@ -31,7 +31,7 @@ def extract_varian(nama):
 # Load Data
 @st.cache_data
 def load_data():
-    df = pd.read_csv('dataset_kopi_tokopedia_clean.csv')
+    df = pd.read_csv('data_kopi_tokopedia_clean.csv')
     df['Varian_Kopi'] = df['Nama_Produk'].apply(extract_varian)
     df['Estimasi_Omzet'] = df['Harga'] * df['Terjual']
     return df
