@@ -258,7 +258,7 @@ with tab3:
 
     # Visualisasi Pangsa Pasar Omzet
     st.subheader("Omset Kopi")
-    st.latex(rf"$$\text{Omzet} = \text{Harga} \times \text{Terjual}$$")
+    st.latex(rf"\text{Omzet} = \text{Harga} \times \text{Terjual}")
     fig_donut_omzet = px.pie(
         df_filtered, 
         names='Varian Kopi', 
