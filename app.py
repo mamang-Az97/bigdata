@@ -243,18 +243,86 @@ with tab3:
     st.info("Persamaan Regresi Linier Berganda Terbentuk:")
     st.latex(rf"Y = {a:.2f} + ({b1:.6f}) \times \text{{Harga}} + ({b2:.2f}) \times \text{{Rating}}")
     
-    st.markdown("#### 🔮 Simulasi Prediksi Penjualan")
+    st.markdown("#### 🔮 Simulasi Prediksi Penjualan & Omzet")
+    st.caption("Masukan estimasi harga dan rating untuk memproyeksikan potensi unit terjual dan omzet produk baru Anda.")
+
+    # ---------------------------------------------------------
+    # 1. INPUT PARAMETER SIMULASI
+    # ---------------------------------------------------------
     col_input1, col_input2 = st.columns(2)
     
     with col_input1:
-        input_harga = st.number_input("Input Harga Produk (Rp)", min_value=400, max_value=2000000, value=50000, step=5000)
-    with col_input2:
-        input_rating = st.slider("Input Rating Produk", float(df['Rating'].min()), float(df['Rating'].max()))
-        
-    pred_terjual = model.predict([[input_harga, input_rating]])[0]
-    pred_terjual_clean = max(0, int(np.round(pred_terjual)))
+        input_harga = st.number_input(
+            "Harga Produk (Rp)", 
+            min_value=int(df['Harga'].min()), 
+            max_value=int(df['Harga'].max()), 
+            value=50000, 
+            step=5000,
+            help="Masukkan rencana harga jual produk Anda"
+        )
     
-    st.success(f"📌 Estimasikan Penjualan: **± {pred_terjual_clean} unit**")
+    with col_input2:
+        # Menggunakan mean rating sebagai default value agar tampilan awal realistis
+        default_rating = float(np.round(df['Rating'].mean(), 1))
+        input_rating = st.slider(
+            "Target Rating Produk", 
+            min_value=float(df['Rating'].min()), 
+            max_value=float(df['Rating'].max()),
+            value=default_rating,
+            step=0.1,
+            help="Targetkan perkiraan rating kepuasan pembeli (1.0 - 5.0)"
+        )
+    
+    # ---------------------------------------------------------
+    # 2. KALKULASI PREDIKSI (MENGGUNAKAN DATAFRAME AGAR BEBAS WARNING)
+    # ---------------------------------------------------------
+    input_data = pd.DataFrame([[input_harga, input_rating]], columns=['Harga', 'Rating'])
+    pred_terjual_raw = model.predict(input_data)[0]
+    
+    # Mencegah nilai minus jika prediksi di luar jangkauan rasional
+    pred_terjual_clean = max(0, int(np.round(pred_terjual_raw)))
+    pred_omzet = pred_terjual_clean * input_harga
+    
+    # ---------------------------------------------------------
+    # 3. VISUALISASI HASIL PREDIKSI (KPI METRICS)
+    # ---------------------------------------------------------
+    st.markdown("##### 📊 Hasil Proyeksi")
+    col_res1, col_res2, col_res3 = st.columns(3)
+    
+    with col_res1:
+        st.metric(
+            label="Estimasi Unit Terjual", 
+            value=f"{pred_terjual_clean:,} unit"
+        )
+    
+    with col_res2:
+        st.metric(
+            label="Estimasi Total Omzet", 
+            value=f"Rp {pred_omzet:,.0f}"
+        )
+    
+    with col_res3:
+        # Menghitung kontribusi omzet bulanan (asumsi per 30 hari)
+        st.metric(
+            label="Rata-Rata Harga Input", 
+            value=f"Rp {input_harga:,.0f}"
+        )
+    
+    # ---------------------------------------------------------
+    # 4. INSIGHT OTOMATIS BERDASARKAN KOEFISIEN MODEL
+    # ---------------------------------------------------------
+    if pred_terjual_clean == 0:
+        st.warning("⚠️ **Peringatan:** Kombinasi harga terlalu tinggi dan rating rendah berpotensi membuat produk sepi peminat.")
+    else:
+        # Koefisien b1 (harga) & b2 (rating)
+        b1_harga = model.coef_[0]
+        b2_rating = model.coef_[1]
+        
+        st.info(
+            f"💡 **Insight Bisnis:**\n"
+            f"* Setiap kenaikan **Rating +0.1** diproyeksikan menambah penjualan sebanyak **± {int(np.round(b2_rating * 0.1))} unit**.\n"
+            f"* Setiap penyesuaian **Harga ± Rp 10.000** memengaruhi potensi penjualan sebesar **± {abs(int(np.round(b1_harga * 10000)))} unit**."
+        )
 
     # Visualisasi Pangsa Pasar Omzet
     st.subheader("Omset Kopi")
