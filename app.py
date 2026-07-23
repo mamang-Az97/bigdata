@@ -163,6 +163,17 @@ with tab2:
         )
         fig_toko.update_layout(yaxis={'categoryorder':'total ascending'})
         st.plotly_chart(fig_toko, use_container_width=True)
+    st.markdown("---")
+    st.subheader("📋 Seluruh Data Terfilter")
+    st.dataframe(df_filtered, use_container_width=True)
+    
+    csv_data = df_filtered.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="📥 Download Data Terfilter (CSV)",
+        data=csv_data,
+        file_name="data_kopi_tokopedia_filtered.csv",
+        mime="text/csv"
+    )
 
 with tab3:
     st.subheader("Model Regresi Linier Berganda")
